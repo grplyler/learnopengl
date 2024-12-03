@@ -8,9 +8,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Add the main executable
-add_executable(${PROJECT_NAME} src/main.cpp src/shaders.h)
+add_executable(${PROJECT_NAME} src/main.cpp src/shader.h)
 
-# Add GLFW as a subdirectory
+# Add GLFW as a subdirectorys
 add_subdirectory(vendor/glfw)
 
 # Link GLFW to the main executable

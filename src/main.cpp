@@ -5,7 +5,7 @@
 #include <sstream>
 #include <string>
 #include <cmath>
-#include "shaders.h"
+#include "shader.h"
 
 struct Mesh {
     float *vertices;
@@ -15,7 +15,7 @@ struct Mesh {
     unsigned int n_indices;
     unsigned int VBO, VAO, EBO, CBO;
     bool has_vertex_colors = false;
-    bool gpu_loaded;
+    bool gpu_loaded = false;
 };
 
 void MeshLoad(Mesh *mesh);
@@ -125,6 +125,7 @@ Mesh MakeMeshGrid(int rows, int cols, bool load = false) {
 }
 
 void MeshLoad(Mesh* mesh) {
+    std::cout << "Loading mesh to GPU" << std::endl;
     if (mesh->gpu_loaded) {
         std::cerr << "Mesh already loaded on GPU" << std::endl;
         return;
@@ -244,7 +245,7 @@ int main() {
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // My Stuff
-    int shaderProgram = LoadShader("/Users/ryan/code/learnopengl/src/shaders/default");
+    Shader shader("/Users/ryan/code/learnopengl/src/shaders/default/vertex.glsl", "/Users/ryan/code/learnopengl/src/shaders/default/fragment.glsl");
 
     // Setup vertex data
     // Mesh mesh = MakeMeshGrid(10, 10, true);
@@ -262,7 +263,7 @@ int main() {
 
         // rendering commands
         glClear(GL_COLOR_BUFFER_BIT);
-        glUseProgram(shaderProgram);
+        shader.use();
 
         // float timeValue = glfwGetTime();
         // float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
