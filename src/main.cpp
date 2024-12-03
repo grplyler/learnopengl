@@ -13,7 +13,7 @@ struct Mesh {
     unsigned int *indices;
     unsigned int n_vertices;
     unsigned int n_indices;
-    unsigned int VBO, VAO, EBO;
+    unsigned int VBO, VAO, EBO, CBO;
     bool has_vertex_colors = false;
     bool gpu_loaded;
 };
@@ -55,38 +55,20 @@ Mesh MakeTriangleColored(bool load_to_gpu = false) {
     mesh.n_vertices = 3;
     mesh.n_indices = 3;
     mesh.vertices = new float[mesh.n_vertices * 3];
+    mesh.colors = new float[mesh.n_vertices * 3]; // Allocate memory for colors
     mesh.indices = new unsigned int[mesh.n_indices];
 
-    // Vertex 0
-    mesh.vertices[0] = 0.0f;
-    mesh.vertices[1] = 0.5f;
-    mesh.vertices[2] = 0.0f;
+    // Vertex positions
+    mesh.vertices[0] = 0.0f; mesh.vertices[1] = 0.5f; mesh.vertices[2] = 0.0f;
+    mesh.vertices[3] = 0.5f; mesh.vertices[4] = -0.5f; mesh.vertices[5] = 0.0f;
+    mesh.vertices[6] = -0.5f; mesh.vertices[7] = -0.5f; mesh.vertices[8] = 0.0f;
 
-    // Color 0
-    mesh.vertices[3] = 1.0f;
-    mesh.vertices[4] = 0.0f;
-    mesh.vertices[5] = 0.0f;
+    // Vertex colors
+    mesh.colors[0] = 1.0f; mesh.colors[1] = 0.0f; mesh.colors[2] = 0.0f; // Red
+    mesh.colors[3] = 0.0f; mesh.colors[4] = 1.0f; mesh.colors[5] = 0.0f; // Green
+    mesh.colors[6] = 0.0f; mesh.colors[7] = 0.0f; mesh.colors[8] = 1.0f; // Blue
 
-    // Vertex 1
-    mesh.vertices[6] = 0.5f;
-    mesh.vertices[7] = -0.5f;
-    mesh.vertices[8] = 0.0f;
-
-    // Color 1
-    mesh.vertices[9] = 0.0f;
-    mesh.vertices[10] = 1.0f;
-    mesh.vertices[11] = 0.0f;
-
-    // Vertex 2
-    mesh.vertices[12] = -0.5f;
-    mesh.vertices[13] = -0.5f;
-    mesh.vertices[14] = 0.0f;
-
-    // Color 2
-    mesh.vertices[15] = 0.0f;
-    mesh.vertices[16] = 0.0f;
-    mesh.vertices[17] = 1.0f;
-
+    // Indices
     mesh.indices[0] = 0;
     mesh.indices[1] = 1;
     mesh.indices[2] = 2;
@@ -98,6 +80,7 @@ Mesh MakeTriangleColored(bool load_to_gpu = false) {
     }
     return mesh;
 }
+
 
 Mesh MakeMeshGrid(int rows, int cols, bool load = false) {
     Mesh mesh;
@@ -141,13 +124,11 @@ Mesh MakeMeshGrid(int rows, int cols, bool load = false) {
     return mesh;
 }
 
-void MeshLoad(Mesh *mesh) {
+void MeshLoad(Mesh* mesh) {
     if (mesh->gpu_loaded) {
         std::cerr << "Mesh already loaded on GPU" << std::endl;
         return;
     }
-
-    int float_stride = mesh->has_vertex_colors ? 6 : 3;
 
     glGenVertexArrays(1, &mesh->VAO);
     glGenBuffers(1, &mesh->VBO);
@@ -155,50 +136,44 @@ void MeshLoad(Mesh *mesh) {
 
     glBindVertexArray(mesh->VAO);
 
+    // Position buffer
     glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
-    glBufferData(GL_ARRAY_BUFFER, mesh->n_vertices * float_stride * sizeof(float), mesh->vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->n_indices * sizeof(unsigned int), mesh->indices, GL_STATIC_DRAW);
-
-
-
-    // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glBufferData(GL_ARRAY_BUFFER, mesh->n_vertices * 3 * sizeof(float), mesh->vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // Vertex colors
+    // Color buffer
     if (mesh->has_vertex_colors) {
-
-         // Position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
-
-        // Vertex Color attribute
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+        glGenBuffers(1, &mesh->CBO);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->CBO);
+        glBufferData(GL_ARRAY_BUFFER, mesh->n_vertices * 3 * sizeof(float), mesh->colors, GL_STATIC_DRAW);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(1);
-        
-    } else {
-         // Position attribute
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
     }
+
+    // Index buffer
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->n_indices * sizeof(unsigned int), mesh->indices, GL_STATIC_DRAW);
 
     mesh->gpu_loaded = true;
 }
 
-void MeshFree(Mesh *mesh) {
-    // Get rid of the buffers
-    glDeleteVertexArrays(1, &mesh->VAO);
-    glDeleteBuffers(1, &mesh->VBO);
-    glDeleteBuffers(1, &mesh->EBO);
 
-    // Get rid of the data
+void MeshFree(Mesh* mesh) {
+    if (mesh->gpu_loaded) {
+        glDeleteVertexArrays(1, &mesh->VAO);
+        glDeleteBuffers(1, &mesh->VBO);
+        glDeleteBuffers(1, &mesh->EBO);
+        if (mesh->has_vertex_colors) {
+            glDeleteBuffers(1, &mesh->CBO);
+        }
+    }
+
     delete[] mesh->vertices;
+    delete[] mesh->colors;
     delete[] mesh->indices;
 
     mesh->gpu_loaded = false;
-
 }
 
 void DrawMesh(Mesh mesh) {
@@ -268,20 +243,8 @@ int main() {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-
     // My Stuff
     int shaderProgram = LoadShader("/Users/ryan/code/learnopengl/src/shaders/default");
-
-    float vertices[] = {
-        0.5f,  0.5f, 0.0f,  // top right
-        0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,  // bottom left
-        -0.5f,  0.5f, 0.0f   // top left 
-    };
-    unsigned int indices[] = {  // note that we start from 0!
-        0, 1, 3,   // first triangle
-        1, 2, 3    // second triangle
-    }; 
 
     // Setup vertex data
     // Mesh mesh = MakeMeshGrid(10, 10, true);
