@@ -4,19 +4,100 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <cmath>
 #include "shaders.h"
 
 struct Mesh {
     float *vertices;
+    float *colors;
     unsigned int *indices;
     unsigned int n_vertices;
     unsigned int n_indices;
     unsigned int VBO, VAO, EBO;
+    bool has_vertex_colors = false;
     bool gpu_loaded;
 };
 
 void MeshLoad(Mesh *mesh);
 void MeshFree(Mesh *mesh);
+
+Mesh MakeTriangle(bool load_to_gpu = false) {
+    Mesh mesh;
+    mesh.n_vertices = 3;
+    mesh.n_indices = 3;
+    mesh.vertices = new float[mesh.n_vertices * 3];
+    mesh.indices = new unsigned int[mesh.n_indices];
+
+    mesh.vertices[0] = 0.0f;
+    mesh.vertices[1] = 0.5f;
+    mesh.vertices[2] = 0.0f;
+
+    mesh.vertices[3] = 0.5f;
+    mesh.vertices[4] = -0.5f;
+    mesh.vertices[5] = 0.0f;
+
+    mesh.vertices[6] = -0.5f;
+    mesh.vertices[7] = -0.5f;
+    mesh.vertices[8] = 0.0f;
+
+    mesh.indices[0] = 0;
+    mesh.indices[1] = 1;
+    mesh.indices[2] = 2;
+
+    if (load_to_gpu) {
+        MeshLoad(&mesh);
+    }
+    return mesh;
+}
+
+Mesh MakeTriangleColored(bool load_to_gpu = false) {
+    Mesh mesh;
+    mesh.n_vertices = 3;
+    mesh.n_indices = 3;
+    mesh.vertices = new float[mesh.n_vertices * 3];
+    mesh.indices = new unsigned int[mesh.n_indices];
+
+    // Vertex 0
+    mesh.vertices[0] = 0.0f;
+    mesh.vertices[1] = 0.5f;
+    mesh.vertices[2] = 0.0f;
+
+    // Color 0
+    mesh.vertices[3] = 1.0f;
+    mesh.vertices[4] = 0.0f;
+    mesh.vertices[5] = 0.0f;
+
+    // Vertex 1
+    mesh.vertices[6] = 0.5f;
+    mesh.vertices[7] = -0.5f;
+    mesh.vertices[8] = 0.0f;
+
+    // Color 1
+    mesh.vertices[9] = 0.0f;
+    mesh.vertices[10] = 1.0f;
+    mesh.vertices[11] = 0.0f;
+
+    // Vertex 2
+    mesh.vertices[12] = -0.5f;
+    mesh.vertices[13] = -0.5f;
+    mesh.vertices[14] = 0.0f;
+
+    // Color 2
+    mesh.vertices[15] = 0.0f;
+    mesh.vertices[16] = 0.0f;
+    mesh.vertices[17] = 1.0f;
+
+    mesh.indices[0] = 0;
+    mesh.indices[1] = 1;
+    mesh.indices[2] = 2;
+
+    mesh.has_vertex_colors = true;
+
+    if (load_to_gpu) {
+        MeshLoad(&mesh);
+    }
+    return mesh;
+}
 
 Mesh MakeMeshGrid(int rows, int cols, bool load = false) {
     Mesh mesh;
@@ -66,6 +147,8 @@ void MeshLoad(Mesh *mesh) {
         return;
     }
 
+    int float_stride = mesh->has_vertex_colors ? 6 : 3;
+
     glGenVertexArrays(1, &mesh->VAO);
     glGenBuffers(1, &mesh->VBO);
     glGenBuffers(1, &mesh->EBO);
@@ -73,14 +156,33 @@ void MeshLoad(Mesh *mesh) {
     glBindVertexArray(mesh->VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
-    glBufferData(GL_ARRAY_BUFFER, mesh->n_vertices * 3 * sizeof(float), mesh->vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, mesh->n_vertices * float_stride * sizeof(float), mesh->vertices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->n_indices * sizeof(unsigned int), mesh->indices, GL_STATIC_DRAW);
 
+
+
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+
+    // Vertex colors
+    if (mesh->has_vertex_colors) {
+
+         // Position attribute
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+
+        // Vertex Color attribute
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+        
+    } else {
+         // Position attribute
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+    }
 
     mesh->gpu_loaded = true;
 }
@@ -111,6 +213,11 @@ void DrawMeshEx(Mesh mesh, unsigned int mode) {
     }
     glBindVertexArray(mesh.VAO);
     glDrawElements(mode, mesh.n_indices, GL_UNSIGNED_INT, 0);
+}
+
+void SetUniform4f(int shaderProgram, const char* name, float v0, float v1, float v2, float v3) {
+    int location = glGetUniformLocation(shaderProgram, name);
+    glUniform4f(location, v0, v1, v2, v3);
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -159,7 +266,7 @@ int main() {
 
     // Configure OpenGL
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 
     // My Stuff
@@ -177,7 +284,13 @@ int main() {
     }; 
 
     // Setup vertex data
-    Mesh mesh = MakeMeshGrid(10, 10, true);
+    // Mesh mesh = MakeMeshGrid(10, 10, true);
+    // Mesh mesh = MakeTriangle(true);
+    Mesh mesh = MakeTriangleColored(true);
+
+    int nrAttributes;
+    glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
+    std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
     // Main loop
     while (!glfwWindowShouldClose(window)) {
@@ -186,9 +299,12 @@ int main() {
 
         // rendering commands
         glClear(GL_COLOR_BUFFER_BIT);
-
-        // draw our first triangle
         glUseProgram(shaderProgram);
+
+        // float timeValue = glfwGetTime();
+        // float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
+        // SetUniform4f(shaderProgram, "ourColor", 0.0f, greenValue, 0.0f, 1.0f);
+
         DrawMeshEx(mesh, GL_TRIANGLES);
 
         // check and call events and swap the buffers
