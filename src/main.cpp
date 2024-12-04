@@ -5,16 +5,23 @@
 #include <sstream>
 #include <string>
 #include <cmath>
+#include <unordered_map>
+#include <tuple>
 #include "shader.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 struct Mesh {
     float *vertices;
     float *colors;
+    float *texcoords;
     unsigned int *indices;
     unsigned int n_vertices;
     unsigned int n_indices;
-    unsigned int VBO, VAO, EBO, CBO;
+    unsigned int VBO, VAO, EBO, CBO, TBO;
     bool has_vertex_colors = false;
+    bool has_texture_coords = false;
     bool gpu_loaded = false;
 };
 
@@ -81,6 +88,81 @@ Mesh MakeTriangleColored(bool load_to_gpu = false) {
     return mesh;
 }
 
+Mesh MakeTriangleTextured(bool load_to_gpu = false) {
+    Mesh mesh;
+    mesh.n_vertices = 3;
+    mesh.n_indices = 3;
+    mesh.vertices = new float[mesh.n_vertices * 3];
+    mesh.texcoords = new float[mesh.n_vertices * 2]; // Allocate memory for texture coordinates
+    mesh.indices = new unsigned int[mesh.n_indices];
+
+    // Vertex positions
+    mesh.vertices[0] = 0.0f; mesh.vertices[1] = 0.5f; mesh.vertices[2] = 0.0f;
+    mesh.vertices[3] = 0.5f; mesh.vertices[4] = -0.5f; mesh.vertices[5] = 0.0f;
+    mesh.vertices[6] = -0.5f; mesh.vertices[7] = -0.5f; mesh.vertices[8] = 0.0f;
+
+    // Texture coordinates
+    mesh.texcoords[0] = 0.5f; mesh.texcoords[1] = 1.0f;
+    mesh.texcoords[2] = 1.0f; mesh.texcoords[3] = 0.0f;
+    mesh.texcoords[4] = 0.0f; mesh.texcoords[5] = 0.0f;
+
+    // Indices
+    mesh.indices[0] = 0;
+    mesh.indices[1] = 1;
+    mesh.indices[2] = 2;
+
+    mesh.has_texture_coords = true;
+
+    if (load_to_gpu) {
+        MeshLoad(&mesh);
+    }
+    return mesh;
+}
+
+Mesh MakePlaneTextured(bool load_to_gpu = false) {
+    Mesh mesh;
+    mesh.n_vertices = 4;
+    mesh.n_indices = 6;
+    mesh.vertices = new float[mesh.n_vertices * 3];
+    mesh.colors = new float[mesh.n_vertices * 3]; // Allocate memory for colors
+    mesh.texcoords = new float[mesh.n_vertices * 2]; // Allocate memory for texture coordinates
+    mesh.indices = new unsigned int[mesh.n_indices];
+
+    // Vertex positions
+    mesh.vertices[0] = -0.5f; mesh.vertices[1] = -0.5f; mesh.vertices[2] = 0.0f;
+    mesh.vertices[3] = 0.5f; mesh.vertices[4] = -0.5f; mesh.vertices[5] = 0.0f;
+    mesh.vertices[6] = 0.5f; mesh.vertices[7] = 0.5f; mesh.vertices[8] = 0.0f;
+    mesh.vertices[9] = -0.5f; mesh.vertices[10] = 0.5f; mesh.vertices[11] = 0.0f;
+
+    // Vertex Colors
+    mesh.colors[0] = 1.0f; mesh.colors[1] = 0.0f; mesh.colors[2] = 0.0f; // Red
+    mesh.colors[3] = 0.0f; mesh.colors[4] = 1.0f; mesh.colors[5] = 0.0f; // Green
+    mesh.colors[6] = 0.0f; mesh.colors[7] = 0.0f; mesh.colors[8] = 1.0f; // Blue
+    mesh.colors[9] = 1.0f; mesh.colors[10] = 1.0f; mesh.colors[11] = 0.0f; // Yellow
+
+    // Texture coordinates
+    mesh.texcoords[0] = 0.0f; mesh.texcoords[1] = 0.0f;
+    mesh.texcoords[2] = 1.0f; mesh.texcoords[3] = 0.0f;
+    mesh.texcoords[4] = 1.0f; mesh.texcoords[5] = 1.0f;
+    mesh.texcoords[6] = 0.0f; mesh.texcoords[7] = 1.0f;
+
+    // Indices
+    mesh.indices[0] = 0;
+    mesh.indices[1] = 1;
+    mesh.indices[2] = 2;
+    mesh.indices[3] = 0;
+    mesh.indices[4] = 2;
+    mesh.indices[5] = 3;
+
+    mesh.has_texture_coords = true;
+    mesh.has_vertex_colors = true;
+
+    if (load_to_gpu) {
+        MeshLoad(&mesh);
+    }
+    return mesh;
+}
+
 
 Mesh MakeMeshGrid(int rows, int cols, bool load = false) {
     Mesh mesh;
@@ -124,6 +206,38 @@ Mesh MakeMeshGrid(int rows, int cols, bool load = false) {
     return mesh;
 }
 
+void MeshLoadInterleaved(Mesh *mesh) {
+    std::cout << "Loading mesh to GPU" << std::endl;
+    if (mesh->gpu_loaded) {
+        std::cerr << "Mesh already loaded on GPU" << std::endl;
+        return;
+    }
+
+    glGenVertexArrays(1, &mesh->VAO);
+    glGenBuffers(1, &mesh->VBO);
+    glGenBuffers(1, &mesh->EBO);
+
+    glBindVertexArray(mesh->VAO);
+
+    // Position buffer
+    glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
+    glBufferData(GL_ARRAY_BUFFER, mesh->n_vertices * 5 * sizeof(float), nullptr, GL_STATIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, mesh->n_vertices * 3 * sizeof(float), mesh->vertices);
+    glBufferSubData(GL_ARRAY_BUFFER, mesh->n_vertices * 3 * sizeof(float), mesh->n_vertices * 2 * sizeof(float), mesh->texcoords);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // Texture Coords buffer
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    // Index buffer
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->n_indices * sizeof(unsigned int), mesh->indices, GL_STATIC_DRAW);
+
+    mesh->gpu_loaded = true;
+}
+
 void MeshLoad(Mesh* mesh) {
     std::cout << "Loading mesh to GPU" << std::endl;
     if (mesh->gpu_loaded) {
@@ -152,12 +266,22 @@ void MeshLoad(Mesh* mesh) {
         glEnableVertexAttribArray(1);
     }
 
+    // Texture Coords buffer
+    if (mesh->has_texture_coords) {
+        glGenBuffers(1, &mesh->TBO);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh->TBO);
+        glBufferData(GL_ARRAY_BUFFER, mesh->n_vertices * 2 * sizeof(float), mesh->texcoords, GL_STATIC_DRAW);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(2);
+    }
+
     // Index buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->n_indices * sizeof(unsigned int), mesh->indices, GL_STATIC_DRAW);
 
     mesh->gpu_loaded = true;
 }
+
 
 
 void MeshFree(Mesh* mesh) {
@@ -175,6 +299,39 @@ void MeshFree(Mesh* mesh) {
     delete[] mesh->indices;
 
     mesh->gpu_loaded = false;
+}
+
+unsigned int LoadTexture(const char *path) {
+    unsigned int texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    // Set the texture wrapping/filtering options (on the currently bound texture object)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // Set texture filtering parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    int width, height, nrChannels;
+    unsigned char *data = stbi_load(path, &width, &height, &nrChannels, 0);
+    if (data) {
+        GLenum format;
+        if (nrChannels == 1) {
+            format = GL_RED;
+        } else if (nrChannels == 3) {
+            format = GL_RGB;
+        } else if (nrChannels == 4) {
+            format = GL_RGBA;
+        }
+
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    } else {
+        std::cerr << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
+    return texture;
 }
 
 void DrawMesh(Mesh mesh) {
@@ -247,14 +404,24 @@ int main() {
     // My Stuff
     Shader shader("/Users/ryan/code/learnopengl/src/shaders/default/vertex.glsl", "/Users/ryan/code/learnopengl/src/shaders/default/fragment.glsl");
 
+    // Load Texture
+    unsigned int texture = LoadTexture("/Users/ryan/code/learnopengl/assets/textures/container.jpg");
+
     // Setup vertex data
     // Mesh mesh = MakeMeshGrid(10, 10, true);
     // Mesh mesh = MakeTriangle(true);
-    Mesh mesh = MakeTriangleColored(true);
+    // Mesh mesh = MakeTriangleTextured(true);
+    Mesh mesh = MakePlaneTextured(false);
+    MeshLoad(&mesh);
 
     int nrAttributes;
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
     std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
+
+    // State
+    float fps = 0.0f;
+    double lastTime = glfwGetTime();
+    int nbFrames = 0;
 
     // Main loop
     while (!glfwWindowShouldClose(window)) {
@@ -269,11 +436,24 @@ int main() {
         // float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
         // SetUniform4f(shaderProgram, "ourColor", 0.0f, greenValue, 0.0f, 1.0f);
 
+        glBindTexture(GL_TEXTURE_2D, texture);
         DrawMeshEx(mesh, GL_TRIANGLES);
 
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        // Calculate FPS
+        double currentTime = glfwGetTime();
+        nbFrames++;
+        if (currentTime - lastTime >= 1.0) {
+            fps = 1000.0 / double(nbFrames);
+            nbFrames = 0;
+            lastTime += 1.0;
+
+            std::cout << "FPS: " << fps << std::endl;   
+        }
+
     }
 
     // Cleanup

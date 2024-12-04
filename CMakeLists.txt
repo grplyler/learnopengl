@@ -19,6 +19,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 # Ensure proper include directories for GLFW
 target_include_directories(${PROJECT_NAME} PRIVATE vendor/glfw/include)
 
+# Add stb image header
+target_include_directories(${PROJECT_NAME} PRIVATE vendor/stb)
+
 # Optionally, enable support for the Vulkan backend in GLFW
 option(GLFW_USE_VULKAN "Enable Vulkan support in GLFW" OFF)
 
