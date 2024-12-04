@@ -9,6 +9,10 @@
 #include <tuple>
 #include "shader.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -310,23 +314,33 @@ unsigned int LoadTexture(const char *path) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     // Set texture filtering parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     int width, height, nrChannels;
+    stbi_set_flip_vertically_on_load(true); 
     unsigned char *data = stbi_load(path, &width, &height, &nrChannels, 0);
     if (data) {
         GLenum format;
         if (nrChannels == 1) {
             format = GL_RED;
         } else if (nrChannels == 3) {
+            std::cout << "RGB" << std::endl;
             format = GL_RGB;
         } else if (nrChannels == 4) {
+            std::cout << "RGBA" << std::endl;
             format = GL_RGBA;
         }
 
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
+
+        // Configure Mipmaps
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 3);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 3);
+        
     } else {
         std::cerr << "Failed to load texture" << std::endl;
     }
@@ -405,7 +419,8 @@ int main() {
     Shader shader("/Users/ryan/code/learnopengl/src/shaders/default/vertex.glsl", "/Users/ryan/code/learnopengl/src/shaders/default/fragment.glsl");
 
     // Load Texture
-    unsigned int texture = LoadTexture("/Users/ryan/code/learnopengl/assets/textures/container.jpg");
+    unsigned int texture1 = LoadTexture("/Users/ryan/code/learnopengl/assets/textures/container.jpg");
+    unsigned int texture2 = LoadTexture("/Users/ryan/code/learnopengl/assets/textures/awesomeface.png");
 
     // Setup vertex data
     // Mesh mesh = MakeMeshGrid(10, 10, true);
@@ -423,6 +438,12 @@ int main() {
     double lastTime = glfwGetTime();
     int nbFrames = 0;
 
+    glm::vec4 vec(1.0f, 0.0f, 0.0f, 1.0f);
+    glm::mat4 trans = glm::mat4(1.0f);
+    trans = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
+    vec = trans * vec;
+    std::cout << vec.x << vec.y << vec.z << std::endl;
+
     // Main loop
     while (!glfwWindowShouldClose(window)) {
         // input
@@ -431,12 +452,25 @@ int main() {
         // rendering commands
         glClear(GL_COLOR_BUFFER_BIT);
         shader.use();
+        shader.setInt("texture1", 0);
+        shader.setInt("texture2", 1);
 
         // float timeValue = glfwGetTime();
         // float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
         // SetUniform4f(shaderProgram, "ourColor", 0.0f, greenValue, 0.0f, 1.0f);
 
-        glBindTexture(GL_TEXTURE_2D, texture);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture2);
+
+        glm::mat4 trans = glm::mat4(1.0f);
+        trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+        trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+
+        unsigned int transformLoc = glGetUniformLocation(shader.ID, "transform");
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+
         DrawMeshEx(mesh, GL_TRIANGLES);
 
         // check and call events and swap the buffers

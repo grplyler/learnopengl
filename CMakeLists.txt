@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Add the main executable
 add_executable(${PROJECT_NAME} src/main.cpp src/shader.h)
 
-# Add GLFW as a subdirectorys
+# Add GLFW as a subdirectory
 add_subdirectory(vendor/glfw)
 
 # Link GLFW to the main executable
@@ -21,6 +21,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE vendor/glfw/include)
 
 # Add stb image header
 target_include_directories(${PROJECT_NAME} PRIVATE vendor/stb)
+
+# Add GLM (header-only library)
+target_include_directories(${PROJECT_NAME} PRIVATE vendor/glm)
 
 # Optionally, enable support for the Vulkan backend in GLFW
 option(GLFW_USE_VULKAN "Enable Vulkan support in GLFW" OFF)
