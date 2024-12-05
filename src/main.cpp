@@ -64,263 +64,114 @@ void MeshLoad(Mesh *mesh);
 void MeshLoadInterleaved(Mesh *mesh);
 void MeshFree(Mesh *mesh);
 
-Mesh MakeTriangle(bool load_to_gpu = false)
-{
+Mesh GenerateMeshCube() {
     Mesh mesh;
-    mesh.n_vertices = 3;
-    mesh.n_indices = 3;
-    mesh.vertices = new float[mesh.n_vertices * 3];
+
+    // Define interleaved vertex data: x, y, z, u, v
+    float cube_vertices[] = {
+        // Front face
+        -1, -1, -1, 0, 0,  // Bottom-left
+        1, -1, -1, 1, 0,  // Bottom-right
+        1,  1, -1, 1, 1,  // Top-right
+        -1,  1, -1, 0, 1,  // Top-left
+        // Back face
+        -1, -1,  1, 0, 0,  // Bottom-left
+        1, -1,  1, 1, 0,  // Bottom-right
+        1,  1,  1, 1, 1,  // Top-right
+        -1,  1,  1, 0, 1,  // Top-left
+        // Left face
+        -1, -1,  1, 0, 0,  // Bottom-left
+        -1, -1, -1, 1, 0,  // Bottom-right
+        -1,  1, -1, 1, 1,  // Top-right
+        -1,  1,  1, 0, 1,  // Top-left
+        // Right face
+        1, -1, -1, 0, 0,  // Bottom-left
+        1, -1,  1, 1, 0,  // Bottom-right
+        1,  1,  1, 1, 1,  // Top-right
+        1,  1, -1, 0, 1,  // Top-left
+        // Top face
+        -1,  1, -1, 0, 0,  // Bottom-left
+        1,  1, -1, 1, 0,  // Bottom-right
+        1,  1,  1, 1, 1,  // Top-right
+        -1,  1,  1, 0, 1,  // Top-left
+        // Bottom face
+        -1, -1, -1, 0, 0,  // Bottom-left
+        1, -1, -1, 1, 0,  // Bottom-right
+        1, -1,  1, 1, 1,  // Top-right
+        -1, -1,  1, 0, 1,  // Top-left
+    };
+
+
+    // Define indices for drawing triangles
+    unsigned int cube_indices[] = {
+        // Front face
+        0, 1, 2, 2, 3, 0,
+        // Back face
+        4, 5, 6, 6, 7, 4,
+        // Left face
+        8, 9, 10, 10, 11, 8,
+        // Right face
+        12, 13, 14, 14, 15, 12,
+        // Top face
+        16, 17, 18, 18, 19, 16,
+        // Bottom face
+        20, 21, 22, 22, 23, 20,
+    };
+
+    // Allocate memory for the mesh data
+    mesh.n_vertices = 24;
+    mesh.n_indices = 36;
+
+    mesh.vertices = new float[mesh.n_vertices * 5]; // 5 values per vertex (x, y, z, u, v)
+    memcpy(mesh.vertices, cube_vertices, sizeof(cube_vertices));
+
     mesh.indices = new unsigned int[mesh.n_indices];
+    memcpy(mesh.indices, cube_indices, sizeof(cube_indices));
 
-    mesh.vertices[0] = 0.0f;
-    mesh.vertices[1] = 0.5f;
-    mesh.vertices[2] = 0.0f;
-
-    mesh.vertices[3] = 0.5f;
-    mesh.vertices[4] = -0.5f;
-    mesh.vertices[5] = 0.0f;
-
-    mesh.vertices[6] = -0.5f;
-    mesh.vertices[7] = -0.5f;
-    mesh.vertices[8] = 0.0f;
-
-    mesh.indices[0] = 0;
-    mesh.indices[1] = 1;
-    mesh.indices[2] = 2;
-
-    if (load_to_gpu)
-    {
-        MeshLoad(&mesh);
-    }
-    return mesh;
-}
-
-Mesh MakeTriangleColored(bool load_to_gpu = false)
-{
-    Mesh mesh;
-    mesh.n_vertices = 3;
-    mesh.n_indices = 3;
-    mesh.vertices = new float[mesh.n_vertices * 3];
-    mesh.colors = new float[mesh.n_vertices * 3]; // Allocate memory for colors
-    mesh.indices = new unsigned int[mesh.n_indices];
-
-    // Vertex positions
-    mesh.vertices[0] = 0.0f;
-    mesh.vertices[1] = 0.5f;
-    mesh.vertices[2] = 0.0f;
-    mesh.vertices[3] = 0.5f;
-    mesh.vertices[4] = -0.5f;
-    mesh.vertices[5] = 0.0f;
-    mesh.vertices[6] = -0.5f;
-    mesh.vertices[7] = -0.5f;
-    mesh.vertices[8] = 0.0f;
-
-    // Vertex colors
-    mesh.colors[0] = 1.0f;
-    mesh.colors[1] = 0.0f;
-    mesh.colors[2] = 0.0f; // Red
-    mesh.colors[3] = 0.0f;
-    mesh.colors[4] = 1.0f;
-    mesh.colors[5] = 0.0f; // Green
-    mesh.colors[6] = 0.0f;
-    mesh.colors[7] = 0.0f;
-    mesh.colors[8] = 1.0f; // Blue
-
-    // Indices
-    mesh.indices[0] = 0;
-    mesh.indices[1] = 1;
-    mesh.indices[2] = 2;
-
-    mesh.has_vertex_colors = true;
-
-    if (load_to_gpu)
-    {
-        MeshLoad(&mesh);
-    }
-    return mesh;
-}
-
-Mesh MakeTriangleTextured(bool load_to_gpu = false)
-{
-    Mesh mesh;
-    mesh.n_vertices = 3;
-    mesh.n_indices = 3;
-    mesh.vertices = new float[mesh.n_vertices * 3];
-    mesh.texcoords = new float[mesh.n_vertices * 2]; // Allocate memory for texture coordinates
-    mesh.indices = new unsigned int[mesh.n_indices];
-
-    // Vertex positions
-    mesh.vertices[0] = 0.0f;
-    mesh.vertices[1] = 0.5f;
-    mesh.vertices[2] = 0.0f;
-    mesh.vertices[3] = 0.5f;
-    mesh.vertices[4] = -0.5f;
-    mesh.vertices[5] = 0.0f;
-    mesh.vertices[6] = -0.5f;
-    mesh.vertices[7] = -0.5f;
-    mesh.vertices[8] = 0.0f;
-
-    // Texture coordinates
-    mesh.texcoords[0] = 0.5f;
-    mesh.texcoords[1] = 1.0f;
-    mesh.texcoords[2] = 1.0f;
-    mesh.texcoords[3] = 0.0f;
-    mesh.texcoords[4] = 0.0f;
-    mesh.texcoords[5] = 0.0f;
-
-    // Indices
-    mesh.indices[0] = 0;
-    mesh.indices[1] = 1;
-    mesh.indices[2] = 2;
-
-    mesh.has_texture_coords = true;
-
-    if (load_to_gpu)
-    {
-        MeshLoad(&mesh);
-    }
-    return mesh;
-}
-
-Mesh MakePlaneTextured(bool load_to_gpu = false)
-{
-    Mesh mesh;
-    mesh.n_vertices = 4;
-    mesh.n_indices = 6;
-    mesh.vertices = new float[mesh.n_vertices * 3];
-    mesh.colors = new float[mesh.n_vertices * 3];    // Allocate memory for colors
-    mesh.texcoords = new float[mesh.n_vertices * 2]; // Allocate memory for texture coordinates
-    mesh.indices = new unsigned int[mesh.n_indices];
-
-    // Vertex positions
-    mesh.vertices[0] = -0.5f;
-    mesh.vertices[1] = -0.5f;
-    mesh.vertices[2] = 0.0f;
-    mesh.vertices[3] = 0.5f;
-    mesh.vertices[4] = -0.5f;
-    mesh.vertices[5] = 0.0f;
-    mesh.vertices[6] = 0.5f;
-    mesh.vertices[7] = 0.5f;
-    mesh.vertices[8] = 0.0f;
-    mesh.vertices[9] = -0.5f;
-    mesh.vertices[10] = 0.5f;
-    mesh.vertices[11] = 0.0f;
-
-    // Vertex Colors
-    mesh.colors[0] = 1.0f;
-    mesh.colors[1] = 0.0f;
-    mesh.colors[2] = 0.0f; // Red
-    mesh.colors[3] = 0.0f;
-    mesh.colors[4] = 1.0f;
-    mesh.colors[5] = 0.0f; // Green
-    mesh.colors[6] = 0.0f;
-    mesh.colors[7] = 0.0f;
-    mesh.colors[8] = 1.0f; // Blue
-    mesh.colors[9] = 1.0f;
-    mesh.colors[10] = 1.0f;
-    mesh.colors[11] = 0.0f; // Yellow
-
-    // Texture coordinates
-    mesh.texcoords[0] = 0.0f;
-    mesh.texcoords[1] = 0.0f;
-    mesh.texcoords[2] = 1.0f;
-    mesh.texcoords[3] = 0.0f;
-    mesh.texcoords[4] = 1.0f;
-    mesh.texcoords[5] = 1.0f;
-    mesh.texcoords[6] = 0.0f;
-    mesh.texcoords[7] = 1.0f;
-
-    // Indices
-    mesh.indices[0] = 0;
-    mesh.indices[1] = 1;
-    mesh.indices[2] = 2;
-    mesh.indices[3] = 0;
-    mesh.indices[4] = 2;
-    mesh.indices[5] = 3;
-
-    mesh.has_texture_coords = true;
-    mesh.has_vertex_colors = true;
-
-    if (load_to_gpu)
-    {
-        MeshLoad(&mesh);
-    }
-    return mesh;
-}
-
-Mesh MakeCubeTextured(bool load_to_gpu = false)
-{
-    Mesh mesh;
+    // Indicate texture coordinates are interleaved
     mesh.is_interleaved = true;
-    mesh.n_vertices = 36;                           // 6 faces * 2 triangles/face * 3 vertices/triangle
-    mesh.vertices = new float[mesh.n_vertices * 5]; // 3 position + 2 texture coords
-
-    // Cube vertex data with texture coordinates
-    float vertices[] = {
-        // Positions          // Texture Coords
-        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
-        0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
-        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
-
-        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
-        0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
-        0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
-        -0.5f, 0.5f, 0.5f, 0.0f, 1.0f,
-        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-
-        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-        -0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-
-        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-        0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-
-        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-        0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
-        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
-        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
-        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-
-        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
-        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
-        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
-        -0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
-        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f};
-
-    // Copy vertex data to mesh
-    for (int i = 0; i < mesh.n_vertices * 5; i++)
-    {
-        mesh.vertices[i] = vertices[i];
-    }
-
-    mesh.has_vertex_colors = true;
     mesh.has_texture_coords = true;
 
     return mesh;
 }
 
-Mesh MakeMeshCubeLight(bool load_to_gpu = false)
-{
-    Mesh mesh = MakeCubeTextured(false);
-    mesh.emit_light = true;
-    mesh.emit_strength = 1.0f;
-    mesh.is_interleaved = true;
 
-    return mesh;
+
+void MeshLoad2(Mesh *mesh) {
+    std::cout << "Loading mesh to GPU" << std::endl;
+    if (mesh->gpu_loaded) {
+        std::cerr << "Mesh already loaded on GPU" << std::endl;
+        return;
+    }
+
+    glGenVertexArrays(1, &mesh->VAO);
+    glGenBuffers(1, &mesh->VBO);
+    glGenBuffers(1, &mesh->EBO);
+
+    glBindVertexArray(mesh->VAO);
+
+    // Position and Texture Coordinates (Interleaved Buffer)
+    glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
+    glBufferData(GL_ARRAY_BUFFER, mesh->n_vertices * 5 * sizeof(float), mesh->vertices, GL_STATIC_DRAW);
+
+    // Vertex Position (x, y, z)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
+
+    // Texture Coordinates (u, v)
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    // Index Buffer
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->n_indices * sizeof(unsigned int), mesh->indices, GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+
+    mesh->gpu_loaded = true;
+    std::cout << "Mesh successfully loaded to GPU" << std::endl;
 }
+
 
 Mesh MakeMeshGrid(int rows, int cols, bool load = false)
 {
@@ -370,46 +221,6 @@ Mesh MakeMeshGrid(int rows, int cols, bool load = false)
     return mesh;
 }
 
-void MeshLoadInterleaved(Mesh *mesh)
-{
-    std::cout << "Loading mesh to GPU" << std::endl;
-    if (mesh->gpu_loaded)
-    {
-        std::cerr << "Mesh already loaded on GPU" << std::endl;
-        return;
-    }
-
-    if (!mesh->is_interleaved)
-    {
-        std::cerr << "Mesh is not interleaved" << std::endl;
-        return;
-    }
-
-    glGenVertexArrays(1, &mesh->VAO);
-    glGenBuffers(1, &mesh->VBO);
-
-    // Bind VAO
-    glBindVertexArray(mesh->VAO);
-
-    // Load Data to GPU
-    glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
-    glBufferData(GL_ARRAY_BUFFER, mesh->n_vertices * 5 * sizeof(float), mesh->vertices, GL_STATIC_DRAW);
-
-    // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-
-    // Texture attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    // Unbind VAO
-    glBindVertexArray(0);
-    // Unbind VBO
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    mesh->gpu_loaded = true;
-}
 
 void MeshLoad(Mesh *mesh)
 {
@@ -555,12 +366,6 @@ void DrawMeshEx(Mesh mesh, unsigned int mode)
     }
 }
 
-void SetUniform4f(int shaderProgram, const char *name, float v0, float v1, float v2, float v3)
-{
-    int location = glGetUniformLocation(shaderProgram, name);
-    glUniform4f(location, v0, v1, v2, v3);
-}
-
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
     glViewport(0, 0, width, height);
@@ -602,9 +407,9 @@ void processInput(GLFWwindow *window)
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
         camera.ProcessKeyboard(UP, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         camera.ProcessKeyboard(DOWN, deltaTime);
 }
 
@@ -671,11 +476,10 @@ int main()
     // Mesh mesh = MakeTriangle(true);
     // Mesh mesh = MakeTriangleTextured(true);
     // Mesh mesh = MakePlaneTextured(false);
-    Mesh mesh = MakeCubeTextured(false);
-    MeshLoadInterleaved(&mesh);
-
-    Mesh meshLight = MakeMeshCubeLight(false);
-    MeshLoadInterleaved(&meshLight);
+    Mesh mesh = GenerateMeshCube();
+    Mesh meshLight = GenerateMeshCube();
+    MeshLoad2(&mesh);
+    MeshLoad2(&meshLight);
 
     // FPS Control
     double target_fps = 60.0;
@@ -762,10 +566,8 @@ int main()
 
         // rendering commands
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-       
-        shader.setInt("texture1", 0);
-        shader.setInt("texture2", 1);
-
+    
+        shader.use();
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
         glActiveTexture(GL_TEXTURE1);
