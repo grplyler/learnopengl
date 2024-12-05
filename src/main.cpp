@@ -57,6 +57,8 @@ struct Mesh
     bool is_interleaved = false;
     bool has_vertex_colors = false;
     bool has_texture_coords = false;
+    bool emit_light = false;
+    float emit_strength = 1.0f;
     bool gpu_loaded = false;
 };
 
@@ -309,10 +311,15 @@ Mesh MakeCubeTextured(bool load_to_gpu = false)
     mesh.has_vertex_colors = true;
     mesh.has_texture_coords = true;
 
-    if (load_to_gpu)
-    {
-        MeshLoadInterleaved(&mesh); // Load to GPU
-    }
+    return mesh;
+}
+
+Mesh MakeMeshCubeLight(bool load_to_gpu = false)
+{
+    Mesh mesh = MakeCubeTextured(false);
+    mesh.emit_light = true;
+    mesh.emit_strength = 1.0f;
+    mesh.is_interleaved = true;
 
     return mesh;
 }
@@ -648,6 +655,12 @@ int main()
 
     // My Stuff
     Shader shader("src/shaders/default/vertex.glsl", "src/shaders/default/fragment.glsl");
+    Shader lightingShader("src/shaders/lighting/vertex.glsl", "src/shaders/lighting/fragment.glsl");
+    lightingShader.use();
+    lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+    lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+
+
 
     // Load Texture
     unsigned int texture1 = LoadTexture("assets/textures/container.jpg");
@@ -660,6 +673,9 @@ int main()
     // Mesh mesh = MakePlaneTextured(false);
     Mesh mesh = MakeCubeTextured(false);
     MeshLoadInterleaved(&mesh);
+
+    Mesh meshLight = MakeMeshCubeLight(false);
+    MeshLoadInterleaved(&meshLight);
 
     // FPS Control
     double target_fps = 60.0;
@@ -680,7 +696,11 @@ int main()
 
     // Model Matrix
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    // model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+    glm::mat4 modelLight = glm::mat4(1.0f);
+    modelLight = glm::translate(modelLight, glm::vec3(1.2f, 1.0f, 2.0f));
+    modelLight = glm::scale(modelLight, glm::vec3(2.0f)); // Make it a smaller cube
 
     // View Matrix
     glm::mat4 view;
@@ -694,10 +714,13 @@ int main()
 
     // Set Uniforms
     shader.use();
-
     shader.setMat4("view", view);
     shader.setMat4("projection", projection);
     shader.setMat4("model", model);
+    lightingShader.use();
+    lightingShader.setMat4("model", modelLight);
+    lightingShader.setMat4("view", view);
+    lightingShader.setMat4("projection", projection);
 
     // Test
     glm::vec3 cubePositions[] = {
@@ -735,28 +758,22 @@ int main()
         shader.setInt("texture1", 0);
         shader.setInt("texture2", 1);
 
-        model = glm::rotate(model, sin((float)glfwGetTime()) * glm::radians(1.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-        shader.setMat4("model", model);
-
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
-        // DrawMeshEx(mesh, GL_TRIANGLES);
-
         glBindVertexArray(mesh.VAO);
-        for(unsigned int i = 0; i < 10; i++)
-        {
-            glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePositions[i]);
-            float angle = 20.0f * i; 
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            shader.setMat4("model", model);
+        DrawMeshEx(mesh, GL_TRIANGLES);
 
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
+        // Draw Light
+        lightingShader.use();
+        lightingShader.setMat4("view", view);
 
+        // Draw Light
+        glBindVertexArray(meshLight.VAO);
+        DrawMeshEx(meshLight, GL_TRIANGLES);
+    
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
         glfwPollEvents();
