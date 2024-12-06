@@ -721,6 +721,7 @@ int main()
     lightingShader.setMat4("model", model);
     lightingShader.setMat4("view", view);
     lightingShader.setMat4("projection", projection);
+    lightingShader.setVec3("lightPos", 1.2f, 1.0f, 2.0f); // See line 702
 
     lightCubeShader.use();
     lightCubeShader.setMat4("model", modelLight);
