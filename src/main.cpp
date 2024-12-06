@@ -167,6 +167,7 @@ void LoadMesh(Mesh *mesh) {
     // Normal Vectors (nx, ny, nz)
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, mesh->n_vertex_floats * sizeof(float), (void *)(5 * sizeof(float)));
     glEnableVertexAttribArray(2);
+
     // Index Buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->n_indices * sizeof(unsigned int), mesh->indices, GL_STATIC_DRAW);
@@ -391,11 +392,6 @@ int main()
     Shader lightingShader("lighting");
     Shader lightCubeShader("lightCube");
 
-    lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-    lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-
-
-
     // Load Texture
     unsigned int texture1 = LoadTexture("assets/textures/container.jpg");
     unsigned int texture2 = LoadTexture("assets/textures/awesomeface.png");
@@ -493,7 +489,9 @@ int main()
         // camera/view transformation
         glm::mat4 view = camera.GetViewMatrix();
         lightingShader.setMat4("view", view);
+        lightingShader.setVec3("viewPos", camera.Position);
         lightCubeShader.setMat4("view", view);
+
 
         // Draw Light
         lightingShader.use();
