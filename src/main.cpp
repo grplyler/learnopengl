@@ -115,9 +115,18 @@ Mesh GenerateMeshCube() {
         20, 21, 22, 22, 23, 20,
     };
 
+
     // Allocate memory for the mesh data
     mesh.n_vertices = 24;
     mesh.n_indices = 36;
+
+    // for (int i = 0; i < mesh.n_vertices; ++i) {
+    //     float nx = mesh.vertices[i * mesh.n_vertex_floats + 5];
+    //     float ny = mesh.vertices[i * mesh.n_vertex_floats + 6];
+    //     float nz = mesh.vertices[i * mesh.n_vertex_floats + 7];
+    //     std::cout << "Normal[" << i << "] = (" << nx << ", " << ny << ", " << nz << ")" << std::endl;
+    // }
+
 
     mesh.vertices = new float[mesh.n_vertices * mesh.n_vertex_floats]; // 5 values per vertex (x, y, z, u, v)
     memcpy(mesh.vertices, cube_vertices, sizeof(cube_vertices));
@@ -157,7 +166,7 @@ void LoadMesh(Mesh *mesh) {
 
     // Normal Vectors (nx, ny, nz)
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, mesh->n_vertex_floats * sizeof(float), (void *)(5 * sizeof(float)));
-
+    glEnableVertexAttribArray(2);
     // Index Buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->n_indices * sizeof(unsigned int), mesh->indices, GL_STATIC_DRAW);
@@ -442,10 +451,13 @@ int main()
     // shader.setMat4("projection", projection);
     // shader.setMat4("model", model);
 
+    lightingShader.use();
     lightingShader.setMat4("model", model);
     lightingShader.setMat4("view", view);
     lightingShader.setMat4("projection", projection);
-    lightingShader.setVec3("lightPos", 1.2f, 1.0f, 2.0f); // See line 702
+    lightingShader.setVec3("lightPos", 1.2f, 1.0f, 2.0f);
+    lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+    lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 
     lightCubeShader.setMat4("model", modelLight);
     lightCubeShader.setMat4("view", view);

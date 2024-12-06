@@ -11,7 +11,6 @@ uniform vec3 lightPos;
 
 void main()
 {
-    // Normals And Light Direction
     vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(lightPos - FragPos);
 
@@ -23,7 +22,8 @@ void main()
     float ambientStrength = 0.1;
     vec3 ambient = ambientStrength * lightColor;
 
-    // Final Color
+    // Final color
     vec3 result = (ambient + diffuse) * objectColor;
     FragColor = vec4(result, 1.0);
+    // FragColor = vec4((nn + 1.0) * 0.5, 1.0); // Normalize and map [-1, 1] to [0, 1]
 }
