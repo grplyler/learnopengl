@@ -52,53 +52,50 @@ struct Mesh
     unsigned int n_vertices;
     unsigned int n_indices;
     unsigned int VBO, VAO, EBO, CBO, TBO;
-    bool is_interleaved = false;
-    bool has_vertex_colors = false;
-    bool has_texture_coords = false;
+    unsigned int n_vertex_floats = 7;
     bool emit_light = false;
     float emit_strength = 1.0f;
     bool gpu_loaded = false;
 };
 
-void MeshLoad(Mesh *mesh);
-void MeshLoadInterleaved(Mesh *mesh);
-void MeshFree(Mesh *mesh);
+void LoadMesh(Mesh *mesh);
 
 Mesh GenerateMeshCube() {
     Mesh mesh;
+    mesh.n_vertex_floats = 8;
 
-    // Define interleaved vertex data: x, y, z, u, v
+    // Define interleaved vertex data: x, y, z, u, v, nx, ny, nz
     float cube_vertices[] = {
         // Front face
-        -1, -1, -1, 0, 0,  // Bottom-left
-        1, -1, -1, 1, 0,  // Bottom-right
-        1,  1, -1, 1, 1,  // Top-right
-        -1,  1, -1, 0, 1,  // Top-left
+        -1, -1, -1, 0, 0,  0,  0, -1, // Bottom-left
+        1, -1, -1, 1, 0,  0,  0, -1, // Bottom-right
+        1,  1, -1, 1, 1,  0,  0, -1, // Top-right
+        -1,  1, -1, 0, 1,  0,  0, -1, // Top-left
         // Back face
-        -1, -1,  1, 0, 0,  // Bottom-left
-        1, -1,  1, 1, 0,  // Bottom-right
-        1,  1,  1, 1, 1,  // Top-right
-        -1,  1,  1, 0, 1,  // Top-left
+        -1, -1,  1, 0, 0,  0,  0,  1, // Bottom-left
+        1, -1,  1, 1, 0,  0,  0,  1, // Bottom-right
+        1,  1,  1, 1, 1,  0,  0,  1, // Top-right
+        -1,  1,  1, 0, 1,  0,  0,  1, // Top-left
         // Left face
-        -1, -1,  1, 0, 0,  // Bottom-left
-        -1, -1, -1, 1, 0,  // Bottom-right
-        -1,  1, -1, 1, 1,  // Top-right
-        -1,  1,  1, 0, 1,  // Top-left
+        -1, -1,  1, 0, 0, -1,  0,  0, // Bottom-left
+        -1, -1, -1, 1, 0, -1,  0,  0, // Bottom-right
+        -1,  1, -1, 1, 1, -1,  0,  0, // Top-right
+        -1,  1,  1, 0, 1, -1,  0,  0, // Top-left
         // Right face
-        1, -1, -1, 0, 0,  // Bottom-left
-        1, -1,  1, 1, 0,  // Bottom-right
-        1,  1,  1, 1, 1,  // Top-right
-        1,  1, -1, 0, 1,  // Top-left
+        1, -1, -1, 0, 0,  1,  0,  0, // Bottom-left
+        1, -1,  1, 1, 0,  1,  0,  0, // Bottom-right
+        1,  1,  1, 1, 1,  1,  0,  0, // Top-right
+        1,  1, -1, 0, 1,  1,  0,  0, // Top-left
         // Top face
-        -1,  1, -1, 0, 0,  // Bottom-left
-        1,  1, -1, 1, 0,  // Bottom-right
-        1,  1,  1, 1, 1,  // Top-right
-        -1,  1,  1, 0, 1,  // Top-left
+        -1,  1, -1, 0, 0,  0,  1,  0, // Bottom-left
+        1,  1, -1, 1, 0,  0,  1,  0, // Bottom-right
+        1,  1,  1, 1, 1,  0,  1,  0, // Top-right
+        -1,  1,  1, 0, 1,  0,  1,  0, // Top-left
         // Bottom face
-        -1, -1, -1, 0, 0,  // Bottom-left
-        1, -1, -1, 1, 0,  // Bottom-right
-        1, -1,  1, 1, 1,  // Top-right
-        -1, -1,  1, 0, 1,  // Top-left
+        -1, -1, -1, 0, 0,  0, -1,  0, // Bottom-left
+        1, -1, -1, 1, 0,  0, -1,  0, // Bottom-right
+        1, -1,  1, 1, 1,  0, -1,  0, // Top-right
+        -1, -1,  1, 0, 1,  0, -1,  0, // Top-left
     };
 
 
@@ -122,22 +119,18 @@ Mesh GenerateMeshCube() {
     mesh.n_vertices = 24;
     mesh.n_indices = 36;
 
-    mesh.vertices = new float[mesh.n_vertices * 5]; // 5 values per vertex (x, y, z, u, v)
+    mesh.vertices = new float[mesh.n_vertices * mesh.n_vertex_floats]; // 5 values per vertex (x, y, z, u, v)
     memcpy(mesh.vertices, cube_vertices, sizeof(cube_vertices));
 
     mesh.indices = new unsigned int[mesh.n_indices];
     memcpy(mesh.indices, cube_indices, sizeof(cube_indices));
-
-    // Indicate texture coordinates are interleaved
-    mesh.is_interleaved = true;
-    mesh.has_texture_coords = true;
 
     return mesh;
 }
 
 
 
-void MeshLoad2(Mesh *mesh) {
+void LoadMesh(Mesh *mesh) {
     std::cout << "Loading mesh to GPU" << std::endl;
     if (mesh->gpu_loaded) {
         std::cerr << "Mesh already loaded on GPU" << std::endl;
@@ -152,15 +145,18 @@ void MeshLoad2(Mesh *mesh) {
 
     // Position and Texture Coordinates (Interleaved Buffer)
     glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
-    glBufferData(GL_ARRAY_BUFFER, mesh->n_vertices * 5 * sizeof(float), mesh->vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, mesh->n_vertices * mesh->n_vertex_floats * sizeof(float), mesh->vertices, GL_STATIC_DRAW);
 
     // Vertex Position (x, y, z)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, mesh->n_vertex_floats * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
     // Texture Coordinates (u, v)
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, mesh->n_vertex_floats * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+
+    // Normal Vectors (nx, ny, nz)
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, mesh->n_vertex_floats * sizeof(float), (void *)(5 * sizeof(float)));
 
     // Index Buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
@@ -216,79 +212,11 @@ Mesh MakeMeshGrid(int rows, int cols, bool load = false)
 
     if (load)
     {
-        MeshLoad(&mesh);
+        LoadMesh(&mesh);
     }
     return mesh;
 }
 
-
-void MeshLoad(Mesh *mesh)
-{
-    std::cout << "Loading mesh to GPU" << std::endl;
-    if (mesh->gpu_loaded)
-    {
-        std::cerr << "Mesh already loaded on GPU" << std::endl;
-        return;
-    }
-
-    glGenVertexArrays(1, &mesh->VAO);
-    glGenBuffers(1, &mesh->VBO);
-    glGenBuffers(1, &mesh->EBO);
-
-    glBindVertexArray(mesh->VAO);
-
-    // Position buffer
-    glBindBuffer(GL_ARRAY_BUFFER, mesh->VBO);
-    glBufferData(GL_ARRAY_BUFFER, mesh->n_vertices * 3 * sizeof(float), mesh->vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-
-    // Color buffer
-    if (mesh->has_vertex_colors)
-    {
-        glGenBuffers(1, &mesh->CBO);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh->CBO);
-        glBufferData(GL_ARRAY_BUFFER, mesh->n_vertices * 3 * sizeof(float), mesh->colors, GL_STATIC_DRAW);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
-        glEnableVertexAttribArray(1);
-    }
-
-    // Texture Coords buffer
-    if (mesh->has_texture_coords)
-    {
-        glGenBuffers(1, &mesh->TBO);
-        glBindBuffer(GL_ARRAY_BUFFER, mesh->TBO);
-        glBufferData(GL_ARRAY_BUFFER, mesh->n_vertices * 2 * sizeof(float), mesh->texcoords, GL_STATIC_DRAW);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
-        glEnableVertexAttribArray(2);
-    }
-
-    // Index buffer
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->n_indices * sizeof(unsigned int), mesh->indices, GL_STATIC_DRAW);
-
-    mesh->gpu_loaded = true;
-}
-
-void MeshFree(Mesh *mesh)
-{
-    if (mesh->gpu_loaded)
-    {
-        glDeleteVertexArrays(1, &mesh->VAO);
-        glDeleteBuffers(1, &mesh->VBO);
-        glDeleteBuffers(1, &mesh->EBO);
-        if (mesh->has_vertex_colors)
-        {
-            glDeleteBuffers(1, &mesh->CBO);
-        }
-    }
-
-    delete[] mesh->vertices;
-    delete[] mesh->colors;
-    delete[] mesh->indices;
-
-    mesh->gpu_loaded = false;
-}
 
 unsigned int LoadTexture(const char *path)
 {
@@ -356,14 +284,8 @@ void DrawMeshEx(Mesh mesh, unsigned int mode)
         return;
     }
     glBindVertexArray(mesh.VAO);
-    if (mesh.is_interleaved)
-    {
-        glDrawArrays(mode, 0, mesh.n_vertices);
-    }
-    else
-    {
-        glDrawElements(mode, mesh.n_indices, GL_UNSIGNED_INT, 0);
-    }
+    glDrawElements(mode, mesh.n_indices, GL_UNSIGNED_INT, 0);
+    
 }
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
@@ -457,11 +379,9 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     // My Stuff
-    Shader shader("default");
     Shader lightingShader("lighting");
     Shader lightCubeShader("lightCube");
 
-    lightingShader.use();
     lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
     lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 
@@ -478,8 +398,8 @@ int main()
     // Mesh mesh = MakePlaneTextured(false);
     Mesh mesh = GenerateMeshCube();
     Mesh meshLight = GenerateMeshCube();
-    MeshLoad2(&mesh);
-    MeshLoad2(&meshLight);
+    LoadMesh(&mesh);
+    LoadMesh(&meshLight);
 
     // FPS Control
     double target_fps = 60.0;
@@ -521,13 +441,12 @@ int main()
     // shader.setMat4("view", view);
     // shader.setMat4("projection", projection);
     // shader.setMat4("model", model);
-    lightingShader.use();
+
     lightingShader.setMat4("model", model);
     lightingShader.setMat4("view", view);
     lightingShader.setMat4("projection", projection);
     lightingShader.setVec3("lightPos", 1.2f, 1.0f, 2.0f); // See line 702
 
-    lightCubeShader.use();
     lightCubeShader.setMat4("model", modelLight);
     lightCubeShader.setMat4("view", view);
     lightCubeShader.setMat4("projection", projection);
@@ -556,33 +475,24 @@ int main()
         // input
         processInput(window);
 
-        // Camera
+        // rendering commands
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
-
         // camera/view transformation
         glm::mat4 view = camera.GetViewMatrix();
         lightingShader.setMat4("view", view);
         lightCubeShader.setMat4("view", view);
 
-        // rendering commands
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-        shader.use();
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
-
         // Draw Light
         lightingShader.use();
-        glBindVertexArray(mesh.VAO);
-        DrawMeshEx(mesh, GL_TRIANGLES);
+        DrawMesh(mesh);
 
 
         // Draw Light
         lightCubeShader.use();
-        glBindVertexArray(meshLight.VAO);
-        DrawMeshEx(meshLight, GL_TRIANGLES);
+        DrawMesh(meshLight);
+
+
     
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
@@ -610,7 +520,6 @@ int main()
     }
 
     // Cleanup
-    MeshFree(&mesh);
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
