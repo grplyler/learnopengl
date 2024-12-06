@@ -14,15 +14,20 @@ class Shader
 {
 public:
     unsigned int ID;
+    std::string shaderRoot = "src/shaders/";
     // constructor generates the shader on the fly
     // ------------------------------------------------------------------------
-    Shader(const char* vertexPath, const char* fragmentPath)
+    Shader(const char* shaderName)
     {
         // 1. retrieve the vertex/fragment source code from filePath
         std::string vertexCode;
         std::string fragmentCode;
         std::ifstream vShaderFile;
         std::ifstream fShaderFile;
+
+        std::string vertexPath = shaderRoot + std::string(shaderName) + ".vs";
+        std::string fragmentPath = shaderRoot + std::string(shaderName) + ".fs";
+
         // ensure ifstream objects can throw exceptions:
         vShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
         fShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
@@ -79,25 +84,30 @@ public:
     // utility uniform functions
     // ------------------------------------------------------------------------
     void setBool(const std::string &name, bool value) const
-    {         
+    {        
+        glUseProgram(ID); 
         glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value); 
     }
     // ------------------------------------------------------------------------
     void setInt(const std::string &name, int value) const
     { 
+        glUseProgram(ID);
         glUniform1i(glGetUniformLocation(ID, name.c_str()), value); 
     }
     // ------------------------------------------------------------------------
     void setFloat(const std::string &name, float value) const
     { 
+        glUseProgram(ID);
         glUniform1f(glGetUniformLocation(ID, name.c_str()), value); 
     }
     void setVec3(const std::string &name, float v0, float v1, float v2) const
     {
+        glUseProgram(ID);
         glUniform3f(glGetUniformLocation(ID, name.c_str()), v0, v1, v2);
     }
     void setMat4(const std::string &name, glm::mat4 &matrix) const
-    {
+    {   
+        glUseProgram(ID);
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(matrix));
     }
 

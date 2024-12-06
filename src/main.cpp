@@ -21,8 +21,6 @@
 #include "stb_image.h"
 
 // Globals
-
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -654,8 +652,10 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     // My Stuff
-    Shader shader("src/shaders/default/vertex.glsl", "src/shaders/default/fragment.glsl");
-    Shader lightingShader("src/shaders/lighting/vertex.glsl", "src/shaders/lighting/fragment.glsl");
+    Shader shader("default");
+    Shader lightingShader("lighting");
+    Shader lightCubeShader("lightCube");
+
     lightingShader.use();
     lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
     lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
@@ -700,7 +700,7 @@ int main()
 
     glm::mat4 modelLight = glm::mat4(1.0f);
     modelLight = glm::translate(modelLight, glm::vec3(1.2f, 1.0f, 2.0f));
-    modelLight = glm::scale(modelLight, glm::vec3(2.0f)); // Make it a smaller cube
+    modelLight = glm::scale(modelLight, glm::vec3(0.2f)); // Make it a smaller cube
 
     // View Matrix
     glm::mat4 view;
@@ -713,14 +713,20 @@ int main()
     projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
 
     // Set Uniforms
-    shader.use();
-    shader.setMat4("view", view);
-    shader.setMat4("projection", projection);
-    shader.setMat4("model", model);
+    // shader.use();
+    // shader.setMat4("view", view);
+    // shader.setMat4("projection", projection);
+    // shader.setMat4("model", model);
     lightingShader.use();
-    lightingShader.setMat4("model", modelLight);
+    lightingShader.setMat4("model", model);
     lightingShader.setMat4("view", view);
     lightingShader.setMat4("projection", projection);
+
+    lightCubeShader.use();
+    lightCubeShader.setMat4("model", modelLight);
+    lightCubeShader.setMat4("view", view);
+    lightCubeShader.setMat4("projection", projection);
+
 
     // Test
     glm::vec3 cubePositions[] = {
@@ -746,11 +752,12 @@ int main()
         processInput(window);
 
         // Camera
-        shader.use();
+        
 
         // camera/view transformation
         glm::mat4 view = camera.GetViewMatrix();
-        shader.setMat4("view", view);
+        lightingShader.setMat4("view", view);
+        lightCubeShader.setMat4("view", view);
 
         // rendering commands
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -763,14 +770,14 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
+        // Draw Light
+        lightingShader.use();
         glBindVertexArray(mesh.VAO);
         DrawMeshEx(mesh, GL_TRIANGLES);
 
-        // Draw Light
-        lightingShader.use();
-        lightingShader.setMat4("view", view);
 
         // Draw Light
+        lightCubeShader.use();
         glBindVertexArray(meshLight.VAO);
         DrawMeshEx(meshLight, GL_TRIANGLES);
     
