@@ -22,6 +22,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     vendor/glad/include
     vendor/imgui
     vendor/imgui/backends
+    vendor/assimp/include # Assimp include path
 )
 
 # Add GLFW as a subdirectory
@@ -66,6 +67,14 @@ target_compile_definitions(imgui PUBLIC IMGUI_IMPL_OPENGL_LOADER_GLAD)
 # Link ImGui to the main executable
 target_link_libraries(${PROJECT_NAME} PRIVATE imgui)
 
+# Find Assimp
+find_package(assimp REQUIRED)
+
+# Include Assimp's headers
+target_include_directories(${PROJECT_NAME} PRIVATE ${ASSIMP_INCLUDE_DIRS})
+
+# Link Assimp to your executable
+target_link_libraries(${PROJECT_NAME} PRIVATE ${ASSIMP_LIBRARIES})
 
 # Platform-specific OpenGL linking
 if (WIN32)
