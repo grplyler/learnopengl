@@ -16,6 +16,12 @@ add_executable(${PROJECT_NAME}
     src/camera.h
 )
 
+# Add minimesh as a subdirectory
+add_subdirectory(${CMAKE_SOURCE_DIR}/../minimesh ${CMAKE_BINARY_DIR}/minimesh_build)
+
+# Link the minimesh library to the main executable
+target_link_libraries(${PROJECT_NAME} PRIVATE minimesh)
+
 # Include directories
 target_include_directories(${PROJECT_NAME} PRIVATE
     vendor/stb
@@ -26,6 +32,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     vendor/imgui/backends
     vendor/assimp/include # Assimp include path
 )
+
 
 # Add GLFW as a subdirectory
 add_subdirectory(vendor/glfw)

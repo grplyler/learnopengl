@@ -4,6 +4,8 @@
             "name": "Mac",
             "includePath": [
                 "${workspaceFolder}/**",
+                "${workspaceFolder}/src/",
+                "../minimesh/src/include",
                 "/opt/homebrew/Cellar/assimp/5.4.3/include"
             ],
             "defines": [],
